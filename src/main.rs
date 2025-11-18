@@ -1,5 +1,6 @@
 use std::arch::global_asm;
 use std::collections::HashMap;
+
 use rand::Rng;
 use rand::seq::SliceRandom;  // brings .choose() into scope
 use rand::prelude::IndexedRandom;
@@ -107,7 +108,7 @@ impl Graph {
                 e += self.adjacency_matrix[i][j];
             }
         }
-        self.edges = e / 2;
+        self.edges = e;
     }
     fn contract_edge(&mut self, from : &str, to : &str){
         if let (Some(&i), Some(&j)) = (
@@ -121,6 +122,7 @@ impl Graph {
             }
             self.delete_node(from);
             self.delete_node(to);
+            self.recompute_edges();
         }
     }
     fn random_edge(&self) -> Option<(&str, &str)> {
@@ -165,35 +167,66 @@ impl Krager{
             graph : g,
         }
     }
-    fn krager_iteration(&mut self) -> Option<(String, String)>{
+    fn krager_partition(&mut self) -> Graph{
         let mut rng = rand::rng();
 
         let mut g1 = self.graph.clone();
+
         while (g1.nodes > 2 && g1.edges > 1){
+            
             if let Some((from, to)) = g1.random_edge() {
                 let from = from.to_string();
                 let to = to.to_string();
                 g1.contract_edge(from.as_str(), to.as_str());
             }
         }
-        return Some((
-            g1.node_names.get(0).unwrap().to_string(),
-            g1.node_names.get(1).unwrap().to_string()
-        ));
+        return g1;
     }
+
+    fn krager_iteration(&mut self) -> usize{
+        let mut graph_partitioned : Graph = self.krager_partition();
+        
+
+        
+        return graph_partitioned.edges;
+    }
+
+    fn karger_repetition(&mut self)-> usize{
+        let mut minCut : usize =  usize::MAX;
+        for i in 0..(self.graph.nodes*self.graph.nodes/2){
+            let mut currMinCut = self.krager_iteration();
+            if (currMinCut < minCut){
+                minCut = currMinCut;
+            }
+        }
+        return minCut;
+    }
+    
 }
 fn main() {
     let mut g = Graph::new();
 
-    g.add_node("A");
-    g.add_node("B");
-    g.add_node("C");
+    g.add_node("1");
+    g.add_node("2");
+    g.add_node("3");
+    g.add_node("4");
+    g.add_node("5");
 
-    g.add_edge("A", "B");
-    g.add_edge("A", "B"); // multigraph: now A→B has 2 edges
-    g.add_edge("B", "C");
+    g.add_edge("1", "2");
+    g.add_edge("1", "3");
+    g.add_edge("2", "3");
+    g.add_edge("2", "4");
+    g.add_edge("2", "4");
+    g.add_edge("1", "4");
+    g.add_edge("1", "4");
+    g.add_edge("3", "4");
+    g.add_edge("3", "4");
+    g.add_edge("3", "5");
+    g.add_edge("4", "5");
+    g.add_edge("4", "5");
+    
     let mut k = Krager::new(g);
-
-    println!("{:?}", k.krager_iteration());
+    println!("----------------------");
+    println!("MinCut is : {}", k.karger_repetition());
 
 }
